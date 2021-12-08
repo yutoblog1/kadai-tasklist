@@ -14,16 +14,16 @@ import models.task;
 import utils.DBUtil;
 
 /**
- * Servlet implementation class CreateServlet
+ * Servlet implementation class UpdateServlet
  */
-@WebServlet("/create")
-public class CreateServlet extends HttpServlet {
+@WebServlet("/update")
+public class UpdateServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
 
     /**
      * @see HttpServlet#HttpServlet()
      */
-    public CreateServlet() {
+    public UpdateServlet() {
         super();
     }
 
@@ -34,25 +34,34 @@ public class CreateServlet extends HttpServlet {
         String _token = request.getParameter("_token");
         if(_token != null && _token.equals(request.getSession().getId())) {
             EntityManager em = DBUtil.createEntityManager();
-            em.getTransaction().begin();
 
-            task m = new task();
+            // セッションスコープからメッセージのIDを取得して
+            // 該当のIDのメッセージ1件のみをデータベースから取得
+            task m = em.find(task.class, (Integer)(request.getSession().getAttribute("task_id")));
+
+            // フォームの内容を各フィールドに上書き
 
             String content = request.getParameter("content");
             m.setContent(content);
 
             Timestamp currentTime = new Timestamp(System.currentTimeMillis());
-            m.setCreated_at(currentTime);
-            m.setUpdated_at(currentTime);
+            m.setUpdated_at(currentTime);       // 更新日時のみ上書き
 
-                 // データベースに保存
-            em.persist(m);
+            // データベースを更新
+            em.getTransaction().begin();
             em.getTransaction().commit();
-            request.getSession().setAttribute("flush", "登録が完了しました。");       // ここを追記
+            // データベースを更新
+            em.getTransaction().begin();
+            em.getTransaction().commit();
+            request.getSession().setAttribute("flush", "更新が完了しました。");       // ここを追記
+            em.close();
             em.close();
 
+            // セッションスコープ上の不要になったデータを削除
+            request.getSession().removeAttribute("task_id");
+
+            // indexページへリダイレクト
             response.sendRedirect(request.getContextPath() + "/index");
         }
     }
-
 }
